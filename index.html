@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>起名馆 · AI 起名平台</title>
+<style>
+  :root {
+    --ink: #1f2a24;
+    --ink-soft: #4a5a51;
+    --paper: #f7f4ec;
+    --paper-deep: #efe9dc;
+    --seal: #9c3a2a;
+    --line: #d8d1c1;
+    --accent: #2f5d4a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Songti SC", "Noto Serif SC", "SimSun", Georgia, serif;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+  header { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 28px; }
+  h1 { font-size: 34px; margin: 0 0 6px; letter-spacing: 4px; font-weight: 600; }
+  .sub { color: var(--ink-soft); font-size: 14px; letter-spacing: 1px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 26px; }
+  @media (min-width: 900px) { .grid { grid-template-columns: 1fr 320px; } }
+  .card {
+    background: #fffdf7;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 22px 24px;
+  }
+  label { display: block; font-size: 13px; color: var(--ink-soft); letter-spacing: 1px; margin-bottom: 8px; }
+  textarea, select {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 3px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    outline: none;
+  }
+  textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { min-height: 92px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 200px; gap: 16px; margin-bottom: 18px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 16px; }
+  .chip {
+    font-size: 12.5px; padding: 4px 11px; border: 1px dashed var(--line);
+    border-radius: 999px; background: transparent; color: var(--ink-soft);
+    cursor: pointer; font-family: inherit;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .actions { display: flex; align-items: center; gap: 14px; }
+  button.primary {
+    background: var(--accent); color: #fdfbf4; border: none;
+    padding: 11px 30px; font-size: 15px; letter-spacing: 3px;
+    border-radius: 3px; cursor: pointer; font-family: inherit;
+  }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; }
+  .status { font-size: 12.5px; color: var(--ink-soft); }
+  .status.err { color: var(--seal); }
+  .out {
+    margin-top: 22px; min-height: 220px; white-space: pre-wrap;
+    font-size: 15.5px; line-height: 1.95; letter-spacing: .3px;
+    border-top: 1px dashed var(--line); padding-top: 20px;
+  }
+  .out .ph { color: #a3a094; font-size: 14px; }
+  .out h4 { margin: 18px 0 6px; font-size: 17px; color: var(--accent); font-weight: 600; }
+  .out b { color: var(--seal); font-weight: 600; }
+  .cursor { display: inline-block; width: 7px; height: 17px; background: var(--seal);
+    vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  aside h3 { font-size: 15px; letter-spacing: 2px; margin: 0 0 4px; }
+  .hint { font-size: 12px; color: var(--ink-soft); margin: 0 0 14px; }
+  .hist { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow: auto; }
+  .hist-item {
+    border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px;
+    background: #fff; cursor: pointer; font-size: 13px; line-height: 1.5;
+  }
+  .hist-item:hover { border-color: var(--accent); }
+  .hist-item .m { color: var(--accent); font-size: 11.5px; letter-spacing: 1px; }
+  .hist-item .t { color: #9a9689; font-size: 11px; margin-top: 4px; }
+  .empty { font-size: 12.5px; color: #a3a094; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>起 名 馆</h1>
+    <div class="sub">多模型 · 流式生成 · 历史留痕</div>
+  </header>
+
+  <div class="grid">
+    <main class="card">
+      <div class="row">
+        <div>
+          <label for="req">起名需求</label>
+          <textarea id="req" placeholder="例如：男孩、国风、姓陈、希望名字有山水的意境"></textarea>
+        </div>
+        <div>
+          <label for="model">选择模型</label>
+          <select id="model"></select>
+        </div>
+      </div>
+
+      <div class="chips" id="chips"></div>
+
+      <div class="actions">
+        <button class="primary" id="go">起 名</button>
+        <span class="status" id="status">就绪</span>
+      </div>
+
+      <div class="out" id="out"><span class="ph">名字方案会在这里逐字浮现。</span></div>
+    </main>
+
+    <aside class="card">
+      <h3>往 期 记 录</h3>
+      <p class="hint">来自 Supabase 的 name_history 表</p>
+      <div class="hist" id="hist"><span class="empty">加载中…</span></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const reqEl = $('req'), modelEl = $('model'), outEl = $('out'), statusEl = $('status'), goEl = $('go');
+
+const EXAMPLES = [
+  '男孩、国风、简约、姓陈',
+  '女孩、温柔、有诗经出处',
+  '中性名、现代简约、好写',
+  '英文名、男孩、寓意勇敢'
+];
+
+let examplesShown = false;
+function renderChips() {
+  if (examplesShown) return;
+  examplesShown = true;
+  EXAMPLES.forEach((t) => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = t;
+    b.onclick = () => { reqEl.value = t; reqEl.focus(); };
+    $('chips').appendChild(b);
+  });
+}
+
+async function loadModels() {
+  try {
+    const res = await fetch('/api/models');
+    const data = await res.json();
+    modelEl.innerHTML = '';
+    (data.models || []).forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m.key;
+      opt.textContent = m.label + (m.available ? '' : '（未配置密钥）');
+      modelEl.appendChild(opt);
+    });
+  } catch (e) {
+    modelEl.innerHTML = '<option value="doubao">豆包（火山方舟）</option>';
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** 极简 Markdown：只处理标题行与加粗，保证流式渲染不闪烁 */
+function renderRich(text) {
+  const bold = (s) => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const src = String(text || '').replace(/\r\n?/g, '\n').trim();
+  return escapeHtml(src)
+    // 流式分片可能把 “###” 挤在行中，这里先断行，标题才不会串成一段
+    .replace(/([^\n])#{2,4}\s+/g, '$1\n### ')
+    .split('\n')
+    .map((line) => {
+      const t = line.trim();
+      if (/^#{1,6}\s*$/.test(t)) return ''; // 分片被截断产生的孤立井号，直接丢弃
+      if (/^#{1,4}\s+/.test(t)) {
+        return '<h4>' + bold(t.replace(/^#{1,4}\s+/, '')) + '</h4>';
+      }
+      return bold(t);
+    })
+    .join('\n')
+    .replace(/^\n+/, '')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history?limit=10');
+    const data = await res.json();
+    const box = $('hist');
+    box.innerHTML = '';
+    if (data.warning) {
+      box.innerHTML = '<span class="empty">' + escapeHtml(data.warning) + '</span>';
+    }
+    if (!data.items || !data.items.length) {
+      if (!data.warning) box.innerHTML = '<span class="empty">暂无记录，先起一个名字吧。</span>';
+      return;
+    }
+    data.items.forEach((it) => {
+      const div = document.createElement('div');
+      div.className = 'hist-item';
+      const when = new Date(it.created_at).toLocaleString('zh-CN');
+      div.innerHTML =
+        '<div class="m">' + escapeHtml(it.model_name) + '</div>' +
+        '<div>' + escapeHtml(it.user_requirement).slice(0, 48) + '</div>' +
+        '<div class="t">' + when + '</div>';
+      div.onclick = () => {
+        outEl.innerHTML = renderRich(it.name_result || '');
+        statusEl.textContent = '已载入历史记录';
+        statusEl.className = 'status';
+      };
+      box.appendChild(div);
+    });
+  } catch (e) {
+    $('hist').innerHTML = '<span class="empty">历史记录加载失败</span>';
+  }
+}
+
+/** 手动解析 SSE（EventSource 不支持 POST，所以用 fetch + ReadableStream） */
+async function generate() {
+  const requirement = reqEl.value.trim();
+  if (!requirement) {
+    statusEl.textContent = '请先填写起名需求';
+    statusEl.className = 'status err';
+    reqEl.focus();
+    return;
+  }
+
+  goEl.disabled = true;
+  outEl.innerHTML = '<span class="cursor"></span>';
+  statusEl.textContent = '正在连接模型…';
+  statusEl.className = 'status';
+
+  let full = '';
+
+  try {
+    const res = await fetch('/api/name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirement, model: modelEl.value })
+    });
+
+    if (!res.ok || !res.body) {
+      const err = await res.json().catch(() => ({ error: '请求失败' }));
+      throw new Error(err.error || ('HTTP ' + res.status));
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      let sep;
+      while ((sep = buf.indexOf('\n\n')) !== -1) {
+        const block = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+
+        let evt = 'message';
+        const dataLines = [];
+        block.split('\n').forEach((l) => {
+          if (l.startsWith('event:')) evt = l.slice(6).trim();
+          else if (l.startsWith('data:')) dataLines.push(l.slice(5).trim());
+        });
+        if (!dataLines.length) continue;
+        const raw = dataLines.join('\n');
+        if (raw === '[DONE]') continue;
+
+        let json;
+        try { json = JSON.parse(raw); } catch (e) { continue; }
+
+        if (evt === 'error') {
+          throw new Error(json.message + (json.hint ? '（' + json.hint + '）' : ''));
+        }
+        if (evt === 'meta') {
+          if (json.done) {
+            statusEl.textContent = json.saved
+              ? '完成，已写入 Supabase'
+              : '完成（未写入数据库：' + (json.reason || '未知原因') + '）';
+            statusEl.className = json.saved ? 'status' : 'status err';
+          } else if (json.label) {
+            statusEl.textContent = '正在用「' + json.label + '」生成…';
+          }
+          continue;
+        }
+
+        const delta = json.choices && json.choices[0] && json.choices[0].delta;
+        const piece = delta && (delta.content || delta.reasoning_content);
+        if (piece) {
+          full += piece;
+          outEl.innerHTML = renderRich(full) + '<span class="cursor"></span>';
+        }
+      }
+    }
+
+    outEl.innerHTML = renderRich(full) || '<span class="ph">模型没有返回内容。</span>';
+    if (full) loadHistory();
+  } catch (err) {
+    outEl.innerHTML = '<span class="ph">生成失败：' + escapeHtml(err.message) + '</span>';
+    statusEl.textContent = '失败';
+    statusEl.className = 'status err';
+  } finally {
+    goEl.disabled = false;
+  }
+}
+
+goEl.onclick = generate;
+reqEl.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') generate();
+});
+
+renderChips();
+loadModels();
+loadHistory();
+</script>
+</body>
+</html>
