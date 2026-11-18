@@ -1,0 +1,14 @@
+# 依赖与构建产物
+node_modules/
+.vercel/
+dist/
+
+# 密钥文件：绝不能提交到 GitHub
+.env
+.env.local
+.env.*.local
+
+# 日志与系统文件
+*.log
+npm-debug.log*
+.DS_Store
