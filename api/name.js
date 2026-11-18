@@ -122,8 +122,10 @@ module.exports = async function handler(req, res) {
 
   let answer = '';
   let upstreamRes;
+  let base = String(cfg.baseURL || '');
+  while (base.endsWith('/')) base = base.slice(0, -1);
   try {
-    upstreamRes = await fetch(`${cfg.baseURL.replace(/\\/+$/, '')}/chat/completions`, {
+    upstreamRes = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
